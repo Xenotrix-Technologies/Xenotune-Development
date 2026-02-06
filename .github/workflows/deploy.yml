@@ -1,15 +1,16 @@
-name: Build & Push Docker Image
+name: Build & Push Xenotune Backend
 
 on:
   push:
-    branches: [ "main" ]
+    branches:
+      - main
 
 jobs:
   build:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Checkout
+    - name: Checkout code
       uses: actions/checkout@v4
 
     - name: Login to Docker Hub
@@ -18,11 +19,12 @@ jobs:
         username: ${{ secrets.DOCKERHUB_USERNAME }}
         password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-    - name: Build and Push
-      uses: docker/build-push-action@v5
-      with:
-        context: ./backend
-        push: true
-        tags: |
-          ${{ secrets.DOCKERHUB_USERNAME }}/xenotune-backend:latest
-          ${{ secrets.DOCKERHUB_USERNAME }}/xenotune-backend:${{ github.sha }}
+    - name: Build Docker image
+      run: |
+        docker build \
+          -t ${{ secrets.DOCKERHUB_USERNAME }}/xenotune-backend:latest .
+
+    - name: Push Docker image
+      run: |
+        docker push ${{ secrets.DOCKERHUB_USERNAME }}/xenotune-backend:latest
+

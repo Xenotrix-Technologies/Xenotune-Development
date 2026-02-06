@@ -1,76 +1,80 @@
-# Byte-compiled / optimized / DLL files
+# ----------------------------
+# Python
+# ----------------------------
 __pycache__/
 *.py[cod]
 *$py.class
 
-# Virtual environment
-.venv/
+# Virtual environments
 venv/
+.venv/
 env/
 
-# VS Code
-.vscode/
-
-# Environment variables
+# ----------------------------
+# Environment & Secrets
+# ----------------------------
 .env
 *.env
+# ----------------------------
+# Secrets (ALL service accounts)
+backend/secrets/
+serviceAccountKey.json
 
-# macOS / Linux / Windows system files
+# ----------------------------
+# Runtime config (generated at runtime)
+backend/config.json
+backend/data
+
+# --------------------------
+# Docker 
+docker-compose.override.yml
+*.tar
+# ----------------------------
+# Runtime output
+# ----------------------------
+output/
+*.mid
+*.mp3
+
+# ----------------------------
+# OS / IDE
+# ----------------------------
 .DS_Store
 Thumbs.db
+.vscode/
+.idea/
+*.iml
 
-# PyInstaller / build outputs
+# ----------------------------
+# Build / cache
+# ----------------------------
 build/
 dist/
-*.spec
+*.egg-info/
+.cache/
+.eggs/
+pip-wheel-metadata/
 
-# Logs and caches
+# ----------------------------
+# Logs / databases
+# ----------------------------
 *.log
 *.sqlite3
 *.db
 *.pkl
 *.h5
-.cache/
-*.egg-info/
-.eggs/
-pip-wheel-metadata/
 
-# Test coverage reports
-htmlcov/
-coverage.xml
-.cache
-
-# Jupyter Notebook checkpoints
+# ----------------------------
+# Jupyter
+# ----------------------------
 .ipynb_checkpoints/
 
-# TensorBoard logs
-logs/
-events.out.*
-
-# Python Poetry, Pipenv
-Pipfile.lock
-poetry.lock
-
-# MyPy, Pyright, Pyre
-.mypy_cache/
-.pyright/
-.pyre/
-
-# Git LFS metadata
-.gitattributes.lock
-
-# IDEs
-.idea/
-*.iml
-
-# Ignore local secrets
-secrets/
-
-#serviceAccountKey.json
-serviceAccountKey.json
-
-# Fluid ....
-fluidsynth/
+# ----------------------------
+# Audio / native deps (DO NOT COMMIT)
+# ----------------------------
 ffmpeg/
+fluidsynth/
 FluidR3_GM/
 *.sf2
+
+

@@ -1,9 +1,15 @@
 import json
-import numpy as np
+import random
+from threading import Lock
+
 import torch
 import torch.nn as nn
 import torch.optim as optim
-import random
+
+from app.config import CONFIG_PATH
+
+_config_lock = Lock()
+
 
 NOTE_VOCAB = sorted(set([
     "C2", "D2", "E2", "F2", "G2", "A2", "B2",
@@ -29,13 +35,15 @@ class NoteLSTM(nn.Module):
         return self.fc(hidden[-1])
 
 
-def load_config(path="config.json"):
-    with open(path, "r") as f:
+def load_config():
+  with _config_lock:
+    with open(CONFIG_PATH, "r") as f:
         return json.load(f)
 
 
-def save_config(config, path="config.json"):
-    with open(path, "w") as f:
+def save_config(config):
+ with _config_lock:
+    with open(CONFIG_PATH, "w") as f:
         json.dump(config, f, indent=4)
     print("✅ Config saved.")
 

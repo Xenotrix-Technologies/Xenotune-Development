@@ -1,0 +1,28 @@
+services:
+  backend:
+    container_name: xenotune-backend
+    image: xenotune-backend:prod
+
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+
+    ports:
+      - "8000:8000"
+
+    # ✅ Docker Secrets (SECURE)
+    secrets:
+      - firebase_key
+
+    environment:
+      CONFIG_PATH: /app/data/config.json
+      FIREBASE_KEY_PATH: /run/secrets/firebase_key
+      FIREBASE_BUCKET: xenotune-fromx.firebasestorage.app
+
+    restart: always
+
+
+# 🔐 Secrets definition
+secrets:
+  firebase_key:
+    file: ./backend/secrets/serviceAccountKey.json

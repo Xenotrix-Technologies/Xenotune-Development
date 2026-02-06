@@ -1,5 +1,11 @@
+import logging
+logger = logging.getLogger(__name__)
+
 import os, json, shutil, random, subprocess, time, threading
 from music21 import stream, chord, note, instrument, tempo, metadata, midi
+
+from app.firebase import upload_to_firebase
+from app.config import CONFIG_PATH
 
 def gm_instrument(program):
     inst = instrument.Instrument()
@@ -7,13 +13,13 @@ def gm_instrument(program):
     return inst
 
 # --- Paths ---
-CONFIG_PATH = "config.json"
-OUTPUT_PATH = "output"
-FFMPEG_PATH = os.path.join("ffmpeg", "bin", "ffmpeg.exe")
-FLUIDSYNTH_PATH = os.path.join("fluidsynth", "bin", "fluidsynth.exe")
+#CONFIG_PATH = "/app/config.json"
+OUTPUT_PATH = "/tmp/output"
+FFMPEG_PATH = "ffmpeg"
+FLUIDSYNTH_PATH = "fluidsynth"
 # FFMPEG_PATH = "ffmpeg"
 # FLUIDSYNTH_PATH = "fluidsynth"
-SOUNDFONT_PATH = os.path.join("FluidR3_GM", "FluidR3_GM.sf2")
+SOUNDFONT_PATH = "/usr/share/sounds/sf2/FluidR3_GM.sf2"
 # BGM_PATH = os.path.join("assets", "bgm.mp3")
 
 # --- Section Lengths ---
@@ -143,66 +149,78 @@ def create_drone_part(mode, structure):
     return drone
 
 def generate_music(mode):
-    config = load_config()
-    data = config.get(mode)
-    if not data:
-        raise ValueError(f"Invalid mode: {mode}")
+    try:
+        config = load_config()
+        data = config.get(mode)
+        if not data:
+            raise ValueError(f"Invalid mode: {mode}")
 
-    bpm = data.get("tempo", 80)
-    instruments = data.get("instruments", [])
-    structure = data.get("structure", ["intro", "loop", "outro"])
+        bpm = data.get("tempo", 80)
+        instruments = data.get("instruments", [])
+        structure = data.get("structure", ["intro", "loop", "outro"])
 
-    shutil.rmtree(OUTPUT_PATH, ignore_errors=True)
-    os.makedirs(OUTPUT_PATH, exist_ok=True)
+        shutil.rmtree(OUTPUT_PATH, ignore_errors=True)
+        os.makedirs(OUTPUT_PATH, exist_ok=True)
 
-    score = stream.Score()
-    score.append(tempo.MetronomeMark(number=bpm + random.choice([-2, 0, 1])))
-    score.insert(0, metadata.Metadata(title=f"Xenotune - {mode.title()}"))
+        score = stream.Score()
+        score.append(tempo.MetronomeMark(number=bpm + random.choice([-2, 0, 1])))
+        score.insert(0, metadata.Metadata(title=f"Xenotune - {mode.title()}"))
 
-    progression_map = {
-        "focus": [["C4", "E4", "G4"], ["D4", "F4", "A4"], ["G3", "B3", "D4"]],
-        "relax": [["C4", "G4", "A4"], ["E4", "G4", "B4"], ["D4", "F4", "A4"]],
-        "sleep": [["C3", "E3", "G3"], ["A3", "C4", "E4"], ["F3", "A3", "C4"]]
-    }
-    progression = progression_map.get(mode, [["C4", "E4", "G4"]])
+        progression_map = {
+            "focus": [["C4", "E4", "G4"], ["D4", "F4", "A4"], ["G3", "B3", "D4"]],
+            "relax": [["C4", "G4", "A4"], ["E4", "G4", "B4"], ["D4", "F4", "A4"]],
+            "sleep": [["C3", "E3", "G3"], ["A3", "C4", "E4"], ["F3", "A3", "C4"]],
+        }
+        progression = progression_map.get(mode, [["C4", "E4", "G4"]])
 
-    for inst in instruments:
-        if "samples" in inst:
-            continue
-        part = stream.Part()
-        part.insert(0, get_instrument(inst.get("name", "Piano")))
-        style = inst.get("style", "")
-        notes = inst.get("notes", random.choice(progression))
-        vel_range = (20, 50) if "ambient" in style else (30, 70)
+        for inst in instruments:
+            if "samples" in inst:
+                continue
 
-        for section in structure:
-            beats = 0
-            total_beats = SECTION_LENGTHS.get(section, 8) * 4
-            while beats < total_beats:
-                vel = random.randint(*vel_range)
-                if "arp" in style:
-                    for n in notes:
-                        nt = note.Note(n, quarterLength=0.5)
-                        nt.volume.velocity = vel
-                        part.append(nt)
-                        beats += 0.5
-                        if beats >= total_beats:
-                            break
-                    continue
-                length = 1.5 if "slow" in style else 1.0
-                c = chord.Chord(random.choice(progression), quarterLength=length)
-                c.volume.velocity = vel
-                part.append(c)
-                beats += length
-        score.append(part)
+            part = stream.Part()
+            part.insert(0, get_instrument(inst.get("name", "Piano")))
+            style = inst.get("style", "")
+            notes = inst.get("notes", random.choice(progression))
+            vel_range = (20, 50) if "ambient" in style else (30, 70)
 
-    score.append(create_drone_part(mode, structure))
-    score.append(create_melody_part(mode, structure))
+            for section in structure:
+                beats = 0
+                total_beats = SECTION_LENGTHS.get(section, 8) * 4
+                while beats < total_beats:
+                    vel = random.randint(*vel_range)
+                    if "arp" in style:
+                        for n in notes:
+                            nt = note.Note(n, quarterLength=0.5)
+                            nt.volume.velocity = vel
+                            part.append(nt)
+                            beats += 0.5
+                            if beats >= total_beats:
+                                break
+                        continue
 
-    midi_path = os.path.join(OUTPUT_PATH, f"{mode}.mid")
-    mf = midi.translate.streamToMidiFile(score)
-    mf.open(midi_path, 'wb')
-    mf.write()
-    mf.close()
+                    length = 1.5 if "slow" in style else 1.0
+                    c = chord.Chord(random.choice(progression), quarterLength=length)
+                    c.volume.velocity = vel
+                    part.append(c)
+                    beats += length
 
-    return convert_midi_to_mp3(midi_path)
+            score.append(part)
+
+        score.append(create_drone_part(mode, structure))
+        score.append(create_melody_part(mode, structure))
+
+        # ✅ WRITE MIDI
+        midi_path = os.path.join(OUTPUT_PATH, f"{mode}.mid")
+        score.write("midi", midi_path)
+
+        # ✅ CONVERT TO MP3
+        mp3_path = convert_midi_to_mp3(midi_path)
+
+        logger.info("Music generated successfully: %s", mp3_path)
+
+        # ✅ REQUIRED RETURN
+        return mp3_path
+
+    except Exception as e:
+        logger.exception("Music generation failed")
+        return None

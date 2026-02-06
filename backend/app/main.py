@@ -1,10 +1,17 @@
 from fastapi import FastAPI, BackgroundTasks, Request
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
-from music_loop import generate_and_upload_loop, generate_music, upload_to_firebase
+
+from app.music_loop import generate_and_upload_loop
+from app.music_gen import generate_music
+from app.firebase import upload_to_firebase
 import threading
 
 app = FastAPI()
+
+@app.get("/health")
+def health():
+    return {"status": "ok"}
 
 # Allow CORS for local dev or frontend integration
 app.add_middleware(

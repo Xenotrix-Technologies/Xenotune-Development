@@ -1,8 +1,10 @@
-from music_gen import generate_music
-from firebase import upload_to_firebase
+from app.music_gen import generate_music
+from app.firebase import upload_to_firebase
+from app.config import CONFIG_PATH
+from app.json_gen import save_config
+
 import time
 import os
-from json_gen import main
 
 def generate_and_upload_loop(music_state, stop_flag):
     print("🔁 Music generation/upload loop started...")
@@ -21,8 +23,7 @@ def generate_and_upload_loop(music_state, stop_flag):
 
         upload_to_firebase(initial_file, f"users/{current_user}/{current_slot}.mp3")
         print(f"☁️ Uploaded {current_slot}.mp3")
-        main()
-        
+      #  main()
 
         # ✅ Generate next file immediately
         next_file = generate_music(current_mode)
@@ -31,7 +32,7 @@ def generate_and_upload_loop(music_state, stop_flag):
 
         # 🔁 Replace loop continues until stopped
         while not stop_flag["value"]:
-            main()
+          #  main()
             # Wait for frontend to call /replace before replacing the next slot
             print(f"⏳ Waiting for /replace to be triggered (Next: {current_slot})...")
             while not music_state.get("replace_requested"):
